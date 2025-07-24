@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm:*)",
+      "Bash(find:*)",
+      "Bash(npx playwright test:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(npx tsx:*)",
+      "Bash(rm:*)",
+      "Bash(npx playwright:*)"
+    ],
+    "deny": []
+  }
+}

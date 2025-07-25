@@ -7,7 +7,10 @@
       "Bash(npx ts-node:*)",
       "Bash(npx tsx:*)",
       "Bash(rm:*)",
-      "Bash(npx playwright:*)"
+      "Bash(npx playwright:*)",
+      "Bash(tsx src/agents/output-analyzer.ts:*)",
+      "Bash(timeout 180 pnpm claude-agents)",
+      "Bash(npx tsc:*)"
     ],
     "deny": []
   }

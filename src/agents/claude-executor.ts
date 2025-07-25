@@ -4,6 +4,7 @@
  */
 
 import { query } from '@anthropic-ai/claude-code';
+import { MessageDisplay } from './message-display';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -42,7 +43,7 @@ export class ClaudeExecutor {
         prompt: prompt,
         abortController: this.abortController,
         options: {
-          maxTurns: 5, // 增加轮次以支持工具使用
+          maxTurns: 50, // 大幅增加轮次以支持完整测试套件执行
           permissionMode: 'bypassPermissions',
           continue: true, // 启用会话保持功能
           mcpServers: {
@@ -55,8 +56,8 @@ export class ClaudeExecutor {
           }
         },
       })) {
-        console.log('📨 收到消息类型:', message.type);
-        console.log('📨 收到消息内容:', message);
+        // 使用友好的消息展示器
+        MessageDisplay.logMessage(message);
         
         // 实时输出消息内容
         if (message.type === 'assistant' && message.message?.content) {

@@ -93,3 +93,4 @@ tmp/
 temp/ 
 .history
 playwright-report/
+claude-agents-output

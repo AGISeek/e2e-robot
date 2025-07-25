@@ -3,6 +3,7 @@
  */
 
 export interface AgentConfig {
+  timeout: number;
   workDir: string;
   verbose?: boolean;
 }

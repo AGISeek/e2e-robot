@@ -5,22 +5,10 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/claude-agents-main.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "playwright-example": "tsx src/playwright-baidu-example.ts",
-    "simple-test": "tsx src/simple-baidu-test.ts",
-    "claude-integration": "tsx src/claude-playwright-integration.ts",
-    "claude-code-sdk-example": "tsx src/claude-code-sdk-example.ts",
-    "claude-cli-simple": "tsx src/claude-cli-simple.ts",
-    "claude-automated-testing": "tsx src/claude-automated-testing.ts",
-    "test-claude-sdk": "tsx src/test-claude-sdk.ts",
     "claude-agents": "tsx src/claude-agents-main.ts",
-    "test-claude-agents": "tsx src/test-claude-agents.ts",
-    "test-code-cleaning": "tsx src/test-code-cleaning.ts",
-    "demo-fixed": "tsx src/demo-fixed-integration.ts",
-    "test-safe-executor": "tsx src/test-safe-executor.ts",
-    "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rm -rf dist"
   },
   "keywords": [

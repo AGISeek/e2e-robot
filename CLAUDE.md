@@ -1,88 +1,133 @@
 # CLAUDE.md
 
-本文件为在此代码库中工作的 Claude Code (claude.ai/code) 提供指导。
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 项目概述
+## Project Overview
 
-这是一个使用 TypeScript 构建的 E2E 测试机器人框架，演示了 Claude Code SDK/CLI 与 Playwright 在 Web 自动化方面的集成。该项目专注于使用 Claude AI 生成和执行 Playwright 自动化代码。
+This is an E2E testing robot framework built with TypeScript that demonstrates integration between Claude Code SDK/CLI and Playwright for web automation. The project focuses on using Claude AI to generate and execute Playwright automation code dynamically.
 
-## 常用命令
+## Common Commands
 
-### 开发
-- `pnpm dev` - 使用 tsx watch 模式启动开发服务器
-- `pnpm build` - 使用 tsc 将 TypeScript 构建到 dist/ 目录
-- `pnpm start` - 从 dist/index.js 运行构建的应用程序
-- `pnpm clean` - 删除 dist/ 目录
+### Development
+- `pnpm dev` - Start development server with tsx watch mode
+- `pnpm build` - Build TypeScript to dist/ directory using tsc
+- `pnpm start` - Run built application from dist/index.js
+- `pnpm clean` - Remove dist/ directory
 
-### 运行示例
-- `pnpm simple-test` - 基础 Playwright 测试（打开百度）
-- `pnpm playwright-example` - 完整的 Playwright 自动化示例
-- `pnpm claude-integration` - Claude Code SDK + Playwright 集成（需要 ANTHROPIC_API_KEY）
-- `pnpm claude-code-sdk-example` - Claude CLI + Playwright 集成（需要安装 Claude CLI）
-- `pnpm claude-cli-simple` - 简单的 Claude CLI 使用示例
-- `pnpm demo-fixed` - 带代码清理的固定集成演示
-- `pnpm test-code-cleaning` - 测试代码清理功能
-- `pnpm test-safe-executor` - 测试安全代码执行
+### Example Scripts
+- `pnpm simple-test` - Basic Playwright test (opens Baidu)
+- `pnpm playwright-example` - Full Playwright automation example
+- `pnpm claude-integration` - Claude Code SDK + Playwright integration (requires ANTHROPIC_API_KEY)
+- `pnpm claude-code-sdk-example` - Claude CLI + Playwright integration (requires Claude CLI installation)
+- `pnpm claude-cli-simple` - Simple Claude CLI usage example
+- `pnpm claude-automated-testing` - Automated testing with Claude
+- `pnpm test-claude-sdk` - Test Claude SDK functionality
+- `pnpm claude-agents` - Run Claude agents system
+- `pnpm test-claude-agents` - Test Claude agents
+- `pnpm demo-fixed` - Fixed integration demo with code cleaning
+- `pnpm test-code-cleaning` - Test code cleaning functionality
+- `pnpm test-safe-executor` - Test safe code execution
 
-### Claude 集成的前置条件
-- 设置 `ANTHROPIC_API_KEY` 环境变量
-- 对于 CLI 示例：使用 `npm install -g @anthropic-ai/claude-code` 安装 Claude Code CLI
+### Prerequisites for Claude Integration
+- Set `ANTHROPIC_API_KEY` environment variable
+- For CLI examples: Install Claude Code CLI with `npm install -g @anthropic-ai/claude-code`
 
-## 架构
+## Architecture
 
-### 核心类
+### Core Classes
 
-**E2ERobot** (`src/index.ts`)
-- 主要的机器人框架类，包含 init/start/stop 生命周期
-- 为 E2E 测试执行提供基础
-- 接口：`RobotConfig`，包含 name、version、timeout、retries
+**E2ERobot** (`validate/others/index.ts`)
+- Main robot framework class with init/start/stop lifecycle
+- Provides foundation for E2E test execution
+- Interface: `RobotConfig` with name, version, timeout, retries
 
-**ClaudePlaywrightIntegration** (`src/claude-playwright-integration.ts`)
-- 集成 Claude Code SDK 与 Playwright
-- 从自然语言描述生成 Playwright 代码
-- 使用 `SafeCodeExecutor` 进行安全代码执行
-- 方法：`openBaiduWithClaude()`、`interactiveMode()`、`getBrowserStatus()`
+**ClaudePlaywrightIntegration** (`validate/others/claude-playwright-integration.ts`)
+- Integrates Claude Code SDK with Playwright
+- Generates Playwright code from natural language descriptions
+- Uses `SafeCodeExecutor` for secure code execution
+- Key methods: `openBaiduWithClaude()`, `interactiveMode()`, `getBrowserStatus()`
 
-**ClaudeCodeSDKExample** (`src/claude-code-sdk-example.ts`)
-- 使用 Claude Code CLI（命令行界面）而不是 SDK
-- 类似功能但生成 CLI 进程
-- 方法：`runBaiduAutomation()`、`runMultiTurnConversation()`
+**SafeCodeExecutor** (`validate/others/safe-code-executor.ts`)
+- Provides secure execution of generated Playwright code
+- Validates and cleans code (removes markdown, checks dangerous patterns)
+- Method: `executePlaywrightCode(code, context)`
 
-**SafeCodeExecutor** (`src/safe-code-executor.ts`)
-- 提供生成的 Playwright 代码的安全执行
-- 验证和清理代码（移除 markdown，检查危险模式）
-- 方法：`executePlaywrightCode(code, context)`
+### Claude Agents System
 
-### 关键模式
+**TestAutomationOrchestrator** (`src/agents/orchestrator.ts`)
+- Coordinates all agents to complete full test automation workflow
+- Manages website analysis, scenario generation, test case creation, and execution
+- Built on SOLID principles with modular agent architecture
 
-1. **代码生成流程**：自然语言 → Claude AI → Playwright TypeScript 代码 → 安全执行
-2. **浏览器会话管理**：浏览器生命周期在集成类内管理
-3. **错误处理**：在 finally 块中进行全面的 try/catch 清理
-4. **安全性**：生成的代码在受控环境中验证和执行
+**Agent Hierarchy** (`src/agents/`)
+- `BaseAgent` - Abstract base class with common functionality
+- `WebsiteAnalyzer` - Analyzes target websites for testable elements
+- `ScenarioGenerator` - Creates test scenarios based on analysis
+- `TestCaseGenerator` - Generates executable Playwright test cases
+- `TestRunner` - Executes tests and collects results
+- `ClaudeExecutor` - Handles Claude API interactions
 
-## TypeScript 配置
+**Types System** (`src/agents/types.ts`)
+- Comprehensive type definitions for all agent interactions
+- `AgentConfig`, `AgentResult`, `TestScenario`, `TestStep` interfaces
+- Structured data flow between agents
 
-- 目标：ES2022，模块：ESNext
-- 启用严格模式和全面的类型检查
-- ES 模块（package.json 中的 `"type": "module"`）
-- 输出目录：`dist/`，源码：`src/`
+### Key Patterns
 
-## 依赖项
+1. **Code Generation Flow**: Natural language → Claude AI → Playwright TypeScript code → Safe execution
+2. **Browser Session Management**: Browser lifecycle managed within integration classes
+3. **Error Handling**: Comprehensive try/catch with cleanup in finally blocks
+4. **Security**: Generated code validated and executed in controlled environment
+5. **Agent Orchestration**: Multi-step workflow with specialized agents for different tasks
 
-### 核心
-- `@anthropic-ai/claude-code` - 用于 AI 集成的 Claude Code SDK
-- `@anthropic-ai/sdk` - 直接 Claude API 访问
-- `playwright` - 浏览器自动化框架
-- `tsx` - TypeScript 执行和开发
+## TypeScript Configuration
 
-### 开发
-- `typescript` - TypeScript 编译器
-- `@types/node` - Node.js 类型定义
+- Target: ES2022, Module: ESNext
+- Strict mode enabled with comprehensive type checking
+- ES modules (`"type": "module"` in package.json)
+- Output directory: `dist/`, Source: `src/`
+- Includes strict type checking options: `noUnusedLocals`, `noImplicitReturns`, `exactOptionalPropertyTypes`
 
-## 开发说明
+## Dependencies
 
-- 所有文件使用 ES 模块语法（import/export）
-- 集成示例中的中文注释反映了原始项目文档
-- 浏览器自动化默认在非无头模式下运行以进行演示
-- 代码生成提示旨在产生干净、可执行的 Playwright 代码
-- 安全执行防止危险的代码模式（eval、require、process 访问）
+### Core
+- `@anthropic-ai/claude-code` - Claude Code SDK for AI integration
+- `@anthropic-ai/sdk` - Direct Claude API access
+- `playwright` - Browser automation framework
+- `@playwright/test` - Playwright testing framework
+- `tsx` - TypeScript execution and development
+- `dotenv` - Environment variable management
+
+### Development
+- `typescript` - TypeScript compiler
+- `@types/node` - Node.js type definitions
+
+## Project Structure
+
+```
+src/
+├── agents/                    # Claude agents system
+│   ├── types.ts              # Shared type definitions
+│   ├── orchestrator.ts       # Main orchestration logic
+│   ├── website-analyzer.ts   # Website analysis agent
+│   ├── scenario-generator.ts # Test scenario generation
+│   ├── testcase-generator.ts # Test case creation
+│   ├── test-runner.ts        # Test execution
+│   └── claude-executor.ts    # Claude API integration
+├── claude-agents-main.ts     # Entry point for agents system
+validate/others/              # Validation examples
+├── index.ts                  # Basic E2ERobot framework
+├── claude-playwright-integration.ts # SDK integration
+├── safe-code-executor.ts     # Secure code execution
+└── [other examples]          # Various integration examples
+```
+
+## Development Notes
+
+- All files use ES module syntax (import/export)
+- Browser automation runs in non-headless mode by default for demonstration
+- Code generation prompts designed to produce clean, executable Playwright code
+- Safe execution prevents dangerous code patterns (eval, require, process access)
+- Agent system supports 10-minute timeout for complex operations
+- Output files generated in `claude-agents-output/` directory
+- Chinese comments in integration examples reflect original project documentation

@@ -6,6 +6,8 @@
 import { TestAutomationOrchestrator } from './agents/orchestrator.js';
 import { OutputContentAnalyzer } from './agents/output-analyzer.js';
 import * as path from 'path';
+import dotenv from 'dotenv';
+dotenv.config(); 
 
 async function main(): Promise<void> {
   try {

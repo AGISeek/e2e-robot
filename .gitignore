@@ -94,3 +94,4 @@ temp/
 .history
 playwright-report/
 claude-agents-output
+test-results

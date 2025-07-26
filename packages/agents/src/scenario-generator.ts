@@ -3,7 +3,7 @@
  * 基于网站分析结果生成测试场景文档
  */
 
-import { BaseAgent, AgentResult, AgentConfig } from './types';
+import { BaseAgent, AgentResult, AgentConfig } from '@e2e-robot/core';
 import { ClaudeExecutor } from './claude-executor';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -19,7 +19,7 @@ export class ScenarioGenerator extends BaseAgent {
   /**
    * 基于网站分析结果生成测试场景
    */
-  async execute(analysisFilePath: string): Promise<AgentResult> {
+  async execute(analysisFilePath: string, testConfig?: any): Promise<AgentResult> {
     try {
       this.log('开始生成测试场景...');
       
@@ -28,7 +28,7 @@ export class ScenarioGenerator extends BaseAgent {
       
       // 读取网站分析结果
       const analysisContent = await this.readAnalysisFile(analysisFilePath);
-      const prompt = this.buildScenarioPrompt(analysisContent);
+      const prompt = this.buildScenarioPrompt(analysisContent, testConfig);
       const outputFile = 'test-scenarios.md';
       
       const result = await this.claudeExecutor.executePrompt(prompt, outputFile);
@@ -72,17 +72,46 @@ export class ScenarioGenerator extends BaseAgent {
     throw new Error(`无法在任何位置找到分析文件 ${filePath}`);
   }
   
-  private buildScenarioPrompt(analysisContent: string): string {
-    return `请基于网站分析报告设计测试场景，然后使用 Write 工具保存结果。
+  private buildScenarioPrompt(analysisContent: string, testConfig?: any): string {
+    let configSection = '';
+    
+    if (testConfig) {
+      configSection = `
+=== 用户配置的测试要求 ===
+**目标网站**: ${testConfig.targetUrl}
+**站点名称**: ${testConfig.siteName}
+**最大测试用例数**: ${testConfig.maxTestCases}
+**测试优先级**: ${testConfig.priority}
+
+**具体测试要求**:
+${testConfig.testRequirements.map((req: string, index: number) => `${index + 1}. ${req}`).join('\n')}
+
+**测试类型**:
+${testConfig.testTypes.map((type: string) => {
+  const typeNames: {[key: string]: string} = {
+    'functional': '功能测试',
+    'ux': '用户体验测试', 
+    'responsive': '响应式测试',
+    'performance': '性能测试',
+    'compatibility': '兼容性测试',
+    'security': '安全测试'
+  };
+  return `- ${typeNames[type] || type}`;
+}).join('\n')}
+
+`;
+    }
+
+    return `请基于网站分析报告和用户配置要求设计测试场景，然后使用 Write 工具保存结果。
 
 **重要：请必须使用 Write 工具将测试场景保存到 claude-agents-output/test-scenarios.md 文件。**
-
+${configSection}
 === 网站分析报告 ===
 ${analysisContent}
 
 任务步骤：
-1. 仔细阅读网站分析报告
-2. 基于分析结果设计全面的测试场景
+1. 仔细阅读网站分析报告和用户配置要求
+2. 根据用户指定的测试要求和测试类型设计针对性测试场景
 3. **使用 Write 工具将测试场景保存到 claude-agents-output/test-scenarios.md 文件**
 
 文件内容格式：

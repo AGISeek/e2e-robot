@@ -3,7 +3,7 @@
  * 根据成功执行的测试用例回顾测试场景和网站分析文档，进行校准优化
  */
 
-import { BaseAgent, AgentResult, AgentConfig } from './types';
+import { BaseAgent, AgentResult, AgentConfig } from '@e2e-robot/core';
 import { ClaudeExecutor } from './claude-executor';
 import * as fs from 'fs/promises';
 import * as path from 'path';

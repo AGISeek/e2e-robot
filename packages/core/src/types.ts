@@ -2,6 +2,18 @@
  * 代理系统的类型定义
  */
 
+export interface TestConfig {
+  targetUrl: string;
+  siteName: string;
+  testRequirements: string[];
+  testTypes: string[];
+  maxTestCases: number;
+  priority: 'low' | 'medium' | 'high';
+  timeout: number;
+  workDir: string;
+  verbose: boolean;
+}
+
 export interface AgentConfig {
   timeout: number;
   workDir: string;

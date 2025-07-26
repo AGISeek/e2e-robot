@@ -202,13 +202,14 @@ export class TestResultAnalyzer {
         if (spec.tests) {
           for (const test of spec.tests) {
             for (const result of test.results || []) {
+              const error = result.error?.message;
               const testCase: TestCase = {
                 name: test.title,
                 status: result.status === 'passed' ? 'passed' : 
                        result.status === 'skipped' ? 'skipped' : 'failed',
                 duration: result.duration,
                 file: spec.file,
-                error: result.error?.message
+                ...(error && { error })
               };
               
               tests.push(testCase);
@@ -251,12 +252,13 @@ export class TestResultAnalyzer {
     if (data.testResults) {
       for (const testResult of data.testResults) {
         for (const assertionResult of testResult.assertionResults || []) {
+          const error = assertionResult.failureMessages?.[0];
           tests.push({
             name: assertionResult.title,
             status: assertionResult.status,
             duration: assertionResult.duration,
             file: testResult.name,
-            error: assertionResult.failureMessages?.[0]
+            ...(error && { error })
           });
         }
       }
@@ -285,9 +287,21 @@ export class TestResultAnalyzer {
     let match;
     
     while ((match = testCaseRegex.exec(content)) !== null) {
-      const name = match[1];
+      const name = match[1] || 'Unknown Test';
       const duration = parseFloat(match[2] || '0');
       const body = match[3];
+      
+      if (!body) {
+        // 如果没有 body 内容，默认认为测试通过
+        tests.push({
+          name,
+          status: 'passed',
+          duration,
+          file: fileName
+        });
+        passed++;
+        continue;
+      }
       
       let status: 'passed' | 'failed' | 'skipped' = 'passed';
       let error: string | undefined;
@@ -295,7 +309,7 @@ export class TestResultAnalyzer {
       if (body.includes('<failure')) {
         status = 'failed';
         const errorMatch = body.match(/<failure[^>]*>(.*?)<\/failure>/s);
-        error = errorMatch?.[1]?.trim();
+        error = errorMatch?.[1]?.trim() || 'Test failed';
         failed++;
       } else if (body.includes('<skipped')) {
         status = 'skipped';
@@ -308,7 +322,7 @@ export class TestResultAnalyzer {
         name,
         status,
         duration,
-        error,
+        ...(error && { error }),
         file: fileName
       });
     }

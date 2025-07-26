@@ -10,7 +10,14 @@
       "Bash(npx playwright:*)",
       "Bash(tsx src/agents/output-analyzer.ts:*)",
       "Bash(timeout 180 pnpm claude-agents)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(mkdir:*)",
+      "Bash(grep:*)",
+      "Bash(tsx:*)",
+      "Bash(node:*)",
+      "Bash(ls:*)",
+      "Bash(cp:*)",
+      "Bash(chmod:*)"
     ],
     "deny": []
   }

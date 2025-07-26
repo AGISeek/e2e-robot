@@ -4,7 +4,7 @@
  * 支持自动调试和修复测试用例
  */
 
-import { BaseAgent, AgentResult, AgentConfig } from './types';
+import { BaseAgent, AgentResult, AgentConfig } from '@e2e-robot/core';
 import { ClaudeExecutor } from './claude-executor';
 import { TestResultAnalyzer, TestResults, TestCase } from './test-result-analyzer';
 import * as fs from 'fs/promises';
@@ -113,6 +113,11 @@ export class TestRunner extends BaseAgent {
     // 逐个尝试修复失败的测试用例
     for (let i = 0; i < previousResults.failedTests.length; i++) {
       const failedTest = previousResults.failedTests[i];
+      if (!failedTest) {
+        this.log(`跳过未定义的测试用例 ${i + 1}`);
+        continue;
+      }
+      
       this.log(`正在修复测试用例 ${i + 1}/${previousResults.failedTests.length}: ${failedTest.name}`);
       
       const fixResult = await this.fixSingleTestCase(absoluteTestPath, failedTest, i + 1);
@@ -149,7 +154,7 @@ export class TestRunner extends BaseAgent {
   /**
    * 修复单个测试用例
    */
-  private async fixSingleTestCase(testFilePath: string, failedTest: TestCase, testNumber: number): Promise<any> {
+  private async fixSingleTestCase(testFilePath: string, failedTest: TestCase, _testNumber: number): Promise<any> {
     let currentAttempt = 0;
     let lastError = failedTest.error || '测试失败';
     

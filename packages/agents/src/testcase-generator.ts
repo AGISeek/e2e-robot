@@ -3,7 +3,7 @@
  * 基于测试场景生成 Playwright 测试代码
  */
 
-import { BaseAgent, AgentResult, AgentConfig } from './types';
+import { BaseAgent, AgentResult, AgentConfig } from '@e2e-robot/core';
 import { ClaudeExecutor } from './claude-executor';
 import * as fs from 'fs/promises';
 import * as path from 'path';

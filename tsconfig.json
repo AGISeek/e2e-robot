@@ -19,9 +19,15 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
-    "outDir": "dist",
-    "rootDir": "src"
+    "composite": true,
+    "declaration": true
   },
-  "include": ["src/**/*", "validate/others"],
-  "exclude": ["node_modules", "dist"]
+  "include": [],
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/agents" },
+    { "path": "./packages/cli" },
+    { "path": "./apps/e2e-robot" }
+  ]
 } 

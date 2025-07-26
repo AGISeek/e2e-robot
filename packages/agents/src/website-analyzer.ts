@@ -3,7 +3,7 @@
  * 使用 Claude Code 通过 Playwright MCP 分析网站
  */
 
-import { BaseAgent, AgentResult, AgentConfig } from './types.js';
+import { BaseAgent, AgentResult, AgentConfig } from '@e2e-robot/core';
 import { ClaudeExecutor } from './claude-executor.js';
 import * as path from 'path';
 

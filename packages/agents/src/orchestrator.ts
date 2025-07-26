@@ -3,7 +3,7 @@
  * 协调所有代理完成完整的测试自动化流程
  */
 
-import { AgentConfig } from './types';
+import { AgentConfig } from '@e2e-robot/core';
 import { WebsiteAnalyzer } from './website-analyzer';
 import { ScenarioGenerator } from './scenario-generator';
 import { TestCaseGenerator } from './testcase-generator';
@@ -13,8 +13,22 @@ import { ExecutionStep } from './output-analyzer';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+// 导入测试配置类型
+export interface TestConfig {
+  targetUrl: string;
+  siteName: string;
+  testRequirements: string[];
+  testTypes: string[];
+  maxTestCases: number;
+  priority: 'low' | 'medium' | 'high';
+  timeout: number;
+  workDir: string;
+  verbose: boolean;
+}
+
 export interface OrchestratorConfig extends AgentConfig {
   targetUrl: string;
+  testConfig?: TestConfig;
 }
 
 export class TestAutomationOrchestrator {
@@ -64,12 +78,20 @@ export class TestAutomationOrchestrator {
       if (startStep <= ExecutionStep.WEBSITE_ANALYSIS) {
         console.log('\n📊 步骤1: 网站分析');
         console.log('⏳ 这可能需要几分钟时间，请耐心等待...');
-        const analysisResult = await this.websiteAnalyzer.execute(this.config.targetUrl);
-        if (!analysisResult.success) {
-          throw new Error(`网站分析失败: ${analysisResult.error}`);
+        try {
+          const analysisResult = await this.websiteAnalyzer.execute(this.config.targetUrl);
+          if (!analysisResult.success) {
+            throw new Error(`网站分析失败: ${analysisResult.error}`);
+          }
+          console.log(`✅ 网站分析完成: ${analysisResult.filePath}`);
+          analysisFilePath = analysisResult.filePath!;
+        } catch (error: any) {
+          if (this.isUsageLimitError(error)) {
+            console.log('🚫 网站分析阶段达到使用限制，系统优雅退出');
+            return; // 优雅退出，不抛出错误
+          }
+          throw error;
         }
-        console.log(`✅ 网站分析完成: ${analysisResult.filePath}`);
-        analysisFilePath = analysisResult.filePath!;
       } else {
         // 使用现有的分析文件
         analysisFilePath = path.join(this.config.workDir, 'website-analysis.md');
@@ -79,13 +101,25 @@ export class TestAutomationOrchestrator {
       // 步骤2: 场景生成
       if (startStep <= ExecutionStep.SCENARIO_GENERATION) {
         console.log('\n📝 步骤2: 测试场景生成');
-        console.log('⏳ 正在基于分析结果生成测试场景...');
-        const scenarioResult = await this.scenarioGenerator.execute(analysisFilePath);
-        if (!scenarioResult.success) {
-          throw new Error(`场景生成失败: ${scenarioResult.error}`);
+        if (this.config.testConfig) {
+          console.log(`🎯 基于配置的测试要求: ${this.config.testConfig.testRequirements.length} 项`);
+          console.log(`🧪 测试类型: ${this.config.testConfig.testTypes.join(', ')}`);
         }
-        console.log(`✅ 测试场景生成完成: ${scenarioResult.filePath}`);
-        scenarioFilePath = scenarioResult.filePath!;
+        console.log('⏳ 正在基于分析结果生成测试场景...');
+        try {
+          const scenarioResult = await this.scenarioGenerator.execute(analysisFilePath, this.config.testConfig);
+          if (!scenarioResult.success) {
+            throw new Error(`场景生成失败: ${scenarioResult.error}`);
+          }
+          console.log(`✅ 测试场景生成完成: ${scenarioResult.filePath}`);
+          scenarioFilePath = scenarioResult.filePath!;
+        } catch (error: any) {
+          if (this.isUsageLimitError(error)) {
+            console.log('🚫 场景生成阶段达到使用限制，系统优雅退出');
+            return; // 优雅退出，不抛出错误
+          }
+          throw error;
+        }
       } else {
         // 使用现有的场景文件
         scenarioFilePath = path.join(this.config.workDir, 'test-scenarios.md');
@@ -96,12 +130,20 @@ export class TestAutomationOrchestrator {
       if (startStep <= ExecutionStep.TESTCASE_GENERATION) {
         console.log('\n⚙️ 步骤3: 测试用例生成');
         console.log('⏳ 正在将测试场景转换为 Playwright 代码...');
-        const testCaseResult = await this.testCaseGenerator.execute(scenarioFilePath);
-        if (!testCaseResult.success) {
-          throw new Error(`测试用例生成失败: ${testCaseResult.error}`);
+        try {
+          const testCaseResult = await this.testCaseGenerator.execute(scenarioFilePath);
+          if (!testCaseResult.success) {
+            throw new Error(`测试用例生成失败: ${testCaseResult.error}`);
+          }
+          console.log(`✅ 测试用例生成完成: ${testCaseResult.filePath}`);
+          testCaseFilePath = testCaseResult.filePath!;
+        } catch (error: any) {
+          if (this.isUsageLimitError(error)) {
+            console.log('🚫 测试用例生成阶段达到使用限制，系统优雅退出');
+            return; // 优雅退出，不抛出错误
+          }
+          throw error;
         }
-        console.log(`✅ 测试用例生成完成: ${testCaseResult.filePath}`);
-        testCaseFilePath = testCaseResult.filePath!;
       } else {
         // 使用现有的测试用例文件
         testCaseFilePath = path.join(this.config.workDir, 'generated-tests.spec.ts');
@@ -113,12 +155,20 @@ export class TestAutomationOrchestrator {
       if (startStep <= ExecutionStep.TEST_EXECUTION) {
         console.log('\n🧪 步骤4: 执行测试 (Claude MCP)');
         console.log('⏳ 正在使用 Claude Executor + Playwright MCP 执行测试...');
-        const testResult = await this.testRunner.execute(testCaseFilePath);
-        if (!testResult.success) {
-          console.warn(`⚠️ 测试执行遇到问题: ${testResult.error}`);
-        } else {
-          console.log(`✅ 测试执行完成: ${testResult.filePath}`);
-          testResultsFilePath = path.join(this.config.workDir, 'test-results.json');
+        try {
+          const testResult = await this.testRunner.execute(testCaseFilePath);
+          if (!testResult.success) {
+            console.warn(`⚠️ 测试执行遇到问题: ${testResult.error}`);
+          } else {
+            console.log(`✅ 测试执行完成: ${testResult.filePath}`);
+            testResultsFilePath = path.join(this.config.workDir, 'test-results.json');
+          }
+        } catch (error: any) {
+          if (this.isUsageLimitError(error)) {
+            console.log('🚫 测试执行阶段达到使用限制，系统优雅退出');
+            return; // 优雅退出，不抛出错误
+          }
+          console.warn(`⚠️ 测试执行遇到问题: ${error.message}`);
         }
       } else {
         // 使用现有的测试结果文件
@@ -171,6 +221,39 @@ export class TestAutomationOrchestrator {
     }
   }
   
+  /**
+   * 检查错误是否为使用限制相关错误
+   */
+  private isUsageLimitError(error: any): boolean {
+    if (!error) return false;
+    
+    const errorMessage = (error.message || '').toLowerCase();
+    const errorString = String(error).toLowerCase();
+    
+    // 检查特定的错误代码和标记
+    if (error.code === 'USAGE_LIMIT_REACHED' || error.retryable === false) {
+      return true;
+    }
+    
+    // 检查错误消息中的使用限制指示器
+    const usageLimitPatterns = [
+      'usage limit reached',
+      'claude ai usage limit',
+      'api usage limit',
+      'rate limit',
+      'quota exceeded',
+      'usage quota', 
+      'monthly limit',
+      'api limit exceeded',
+      'claude code process exited with code 1', // Claude Code SDK 特定错误
+      'anthropic api error'
+    ];
+    
+    return usageLimitPatterns.some(pattern => 
+      errorMessage.includes(pattern) || errorString.includes(pattern)
+    );
+  }
+
   private async printSummary(): Promise<void> {
     console.log('\n📋 生成的文件:');
     

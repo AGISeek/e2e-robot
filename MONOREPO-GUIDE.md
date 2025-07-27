@@ -6,7 +6,7 @@
 
 ```
 e2e-robot-workspace/
-├── packages/                    # 共享包
+├── packages/                    # 所有子项目和共享包
 │   ├── core/                   # 核心类型和工具
 │   │   ├── src/
 │   │   │   ├── types.ts       # 共享类型定义
@@ -26,18 +26,27 @@ e2e-robot-workspace/
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
-│   └── cli/                    # 命令行工具
+│   ├── cli/                    # 命令行工具
+│   │   ├── src/
+│   │   │   ├── interactive-config.ts
+│   │   │   └── index.ts
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   │
+│   ├── e2e-robot/             # CLI 主应用
+│   │   ├── src/
+│   │   │   └── claude-agents-main.ts
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   │
+│   └── web/                   # Web 应用
 │       ├── src/
-│       │   ├── interactive-config.ts
-│       │   └── index.ts
+│       │   ├── app/          # Next.js App Router
+│       │   ├── components/   # React 组件
+│       │   └── lib/          # 工具函数
 │       ├── package.json
-│       └── tsconfig.json
-│
-├── apps/                       # 应用程序
-│   └── e2e-robot/             # 主应用
-│       ├── src/
-│       │   └── claude-agents-main.ts
-│       ├── package.json
+│       ├── next.config.mjs
+│       ├── tailwind.config.ts
 │       └── tsconfig.json
 │
 ├── pnpm-workspace.yaml         # pnpm workspace 配置
@@ -75,16 +84,25 @@ pnpm build && pnpm start
 - `@e2e-robot/core` - 核心类型和工具
 - `@e2e-robot/agents` - Claude agents 系统
 - `@e2e-robot/cli` - 命令行工具
-- `e2e-robot` - 主应用程序
+- `e2e-robot` - CLI 主应用程序 (`packages/e2e-robot`)
+- `e2e-robot-web` - Web 界面应用 (`packages/web`)
 
 ### 依赖关系
 ```
-e2e-robot (主应用)
+e2e-robot (CLI 应用)
 ├── @e2e-robot/core
 ├── @e2e-robot/agents
 │   └── @e2e-robot/core
 └── @e2e-robot/cli
     └── @e2e-robot/core
+
+e2e-robot-web (Web 应用)
+├── @e2e-robot/core
+├── @e2e-robot/agents
+│   └── @e2e-robot/core
+├── Next.js 14
+├── React 18
+└── shadcn/ui
 ```
 
 ## 🛠️ 开发命令
@@ -97,10 +115,17 @@ pnpm build
 # 清理所有构建产物
 pnpm clean
 
-# 运行主应用
+# 运行 CLI 应用
 pnpm dev
 pnpm claude-agents
 pnpm start
+
+# 运行 Web 应用
+pnpm dev:web
+pnpm start:web
+
+# 同时运行所有开发服务
+pnpm dev:all
 
 # 运行测试（如果有）
 pnpm test
@@ -118,8 +143,13 @@ pnpm --filter @e2e-robot/agents build
 # 开发模式运行特定包
 pnpm --filter @e2e-robot/core dev
 
-# 运行主应用
+# 运行 CLI 应用
 pnpm --filter e2e-robot claude-agents
+
+# 运行 Web 应用
+pnpm --filter e2e-robot-web dev
+pnpm --filter e2e-robot-web build
+pnpm --filter e2e-robot-web start
 ```
 
 ## 🔧 TypeScript 配置

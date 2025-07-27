@@ -6,8 +6,12 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r run build",
+    "build:web": "pnpm --filter e2e-robot-web build",
     "dev": "pnpm --filter e2e-robot dev",
+    "dev:web": "pnpm --filter e2e-robot-web dev",
+    "dev:all": "pnpm -r run dev",
     "start": "pnpm --filter e2e-robot start",
+    "start:web": "pnpm build:web && pnpm --filter e2e-robot-web start",
     "claude-agents": "pnpm --filter e2e-robot claude-agents",
     "clean": "pnpm -r run clean && rm -rf node_modules",
     "lint": "pnpm -r run lint",
@@ -35,7 +39,6 @@
   },
   "dependencies": {},
   "workspaces": [
-    "packages/*",
-    "apps/*"
+    "packages/*"
   ]
 }

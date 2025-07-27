@@ -76,7 +76,24 @@ export class OutputContentAnalyzer {
           const testResultsContent = await fs.readFile(testResultsPath, 'utf-8');
           const testResults = JSON.parse(testResultsContent);
           
-          if (testResults.success) {
+          // 检查测试是否成功 - 支持多种格式
+          let isTestSuccessful = false;
+          
+          if (typeof testResults.success === 'boolean') {
+            // TestRunner格式：直接有success字段
+            isTestSuccessful = testResults.success;
+          } else if (testResults.stats) {
+            // Playwright原生格式：检查stats字段
+            const stats = testResults.stats;
+            isTestSuccessful = stats.unexpected === 0 && stats.expected > 0;
+          } else if (testResults.suites) {
+            // Playwright原生格式：检查所有测试的状态
+            const allTests = this.extractAllTests(testResults.suites);
+            const failedTests = allTests.filter(test => test.status !== 'expected');
+            isTestSuccessful = allTests.length > 0 && failedTests.length === 0;
+          }
+          
+          if (isTestSuccessful) {
             nextStep = ExecutionStep.CALIBRATION;
             analysis = '发现成功的测试结果，跳过前4步，直接进行校准分析';
             needsInteractiveConfig = false; // 校准步骤不需要新配置
@@ -157,6 +174,29 @@ export class OutputContentAnalyzer {
         needsInteractiveConfig: true
       };
     }
+  }
+
+  /**
+   * 从Playwright suites中提取所有测试用例
+   */
+  private extractAllTests(suites: any[]): any[] {
+    const tests: any[] = [];
+    
+    const extractFromSuite = (suite: any) => {
+      if (suite.specs) {
+        suite.specs.forEach((spec: any) => {
+          if (spec.tests) {
+            tests.push(...spec.tests);
+          }
+        });
+      }
+      if (suite.suites) {
+        suite.suites.forEach(extractFromSuite);
+      }
+    };
+    
+    suites.forEach(extractFromSuite);
+    return tests;
   }
 
   /**

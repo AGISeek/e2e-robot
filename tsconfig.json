@@ -28,6 +28,7 @@
     { "path": "./packages/core" },
     { "path": "./packages/agents" },
     { "path": "./packages/cli" },
-    { "path": "./apps/e2e-robot" }
+    { "path": "./packages/e2e-robot" },
+    { "path": "./packages/web" }
   ]
 } 

@@ -6,7 +6,7 @@ export { TestCaseGenerator } from './testcase-generator.js';
 export { TestRunner } from './test-runner.js';
 export { TestResultAnalyzer } from './test-result-analyzer.js';
 export { ClaudeExecutor } from './claude-executor.js';
-export { OutputContentAnalyzer as OutputAnalyzer } from './output-analyzer.js';
+export { OutputContentAnalyzer as OutputAnalyzer, ExecutionStep } from './output-analyzer.js';
 export { MessageDisplay } from './message-display.js';
 export { MessageAnalyzer } from './message-analyzer.js';
 

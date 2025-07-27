@@ -30,7 +30,24 @@ export class Calibrator extends BaseAgent {
       // 读取测试结果
       const testResults = await this.readTestResults(testResultsPath);
       
-      if (!testResults.success) {
+      // 检查测试是否成功 - 支持多种格式
+      let isTestSuccessful = false;
+      
+      if (typeof testResults.success === 'boolean') {
+        // TestRunner格式：直接有success字段
+        isTestSuccessful = testResults.success;
+      } else if (testResults.stats) {
+        // Playwright原生格式：检查stats字段
+        const stats = testResults.stats;
+        isTestSuccessful = stats.unexpected === 0 && stats.expected > 0;
+      } else if (testResults.suites) {
+        // Playwright原生格式：检查所有测试的状态
+        const allTests = this.extractAllTests(testResults.suites);
+        const failedTests = allTests.filter(test => test.status !== 'expected');
+        isTestSuccessful = allTests.length > 0 && failedTests.length === 0;
+      }
+      
+      if (!isTestSuccessful) {
         return {
           success: false,
           error: '测试未成功，无法进行校准'
@@ -53,7 +70,8 @@ export class Calibrator extends BaseAgent {
         testResults,
         analysisContent,
         scenarioContent,
-        testCaseContent
+        testCaseContent,
+        isTestSuccessful
       });
       
       // 保存校准报告
@@ -74,6 +92,29 @@ export class Calibrator extends BaseAgent {
     }
   }
   
+  /**
+   * 从Playwright suites中提取所有测试用例
+   */
+  private extractAllTests(suites: any[]): any[] {
+    const tests: any[] = [];
+    
+    const extractFromSuite = (suite: any) => {
+      if (suite.specs) {
+        suite.specs.forEach((spec: any) => {
+          if (spec.tests) {
+            tests.push(...spec.tests);
+          }
+        });
+      }
+      if (suite.suites) {
+        suite.suites.forEach(extractFromSuite);
+      }
+    };
+    
+    suites.forEach(extractFromSuite);
+    return tests;
+  }
+
   /**
    * 读取测试结果文件
    */
@@ -107,6 +148,7 @@ export class Calibrator extends BaseAgent {
     analysisContent: string | null;
     scenarioContent: string | null;
     testCaseContent: string | null;
+    isTestSuccessful: boolean;
   }): Promise<any> {
     this.log('使用 Claude 进行校准分析...');
     
@@ -124,7 +166,7 @@ export class Calibrator extends BaseAgent {
     return {
       response,
       timestamp: new Date().toISOString(),
-      testSuccess: data.testResults.success,
+      testSuccess: data.isTestSuccessful,
       attempts: data.testResults.attempts,
       fixedIssues: data.testResults.fixedIssues
     };
@@ -138,11 +180,12 @@ export class Calibrator extends BaseAgent {
     analysisContent: string | null;
     scenarioContent: string | null;
     testCaseContent: string | null;
+    isTestSuccessful: boolean;
   }): string {
     return `请根据成功执行的测试用例结果，对之前的网站分析和测试场景进行校准和优化。
 
 ## 测试执行结果
-执行状态: ${data.testResults.success ? '✅ 成功' : '❌ 失败'}
+执行状态: ${data.isTestSuccessful ? '✅ 成功' : '❌ 失败'}
 尝试次数: ${data.testResults.attempts || 1}
 执行时间: ${data.testResults.timestamp}
 ${data.testResults.fixedIssues ? `自动修复的问题: ${data.testResults.fixedIssues}` : ''}

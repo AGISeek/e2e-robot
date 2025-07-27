@@ -152,7 +152,18 @@ export class TestAutomationOrchestrator {
       
       // 步骤4: 测试执行
       let testResultsFilePath: string | undefined;
-      if (startStep <= ExecutionStep.TEST_EXECUTION) {
+      const expectedTestResultsPath = path.join(this.config.workDir, 'test-results.json');
+      
+      // 检查是否已经存在测试结果文件
+      let testResultsExist = false;
+      try {
+        await fs.access(expectedTestResultsPath);
+        testResultsExist = true;
+      } catch {
+        testResultsExist = false;
+      }
+      
+      if (startStep <= ExecutionStep.TEST_EXECUTION && !testResultsExist) {
         console.log('\n🧪 步骤4: 执行测试 (Claude MCP)');
         console.log('⏳ 正在使用 Claude Executor + Playwright MCP 执行测试...');
         try {
@@ -161,7 +172,7 @@ export class TestAutomationOrchestrator {
             console.warn(`⚠️ 测试执行遇到问题: ${testResult.error}`);
           } else {
             console.log(`✅ 测试执行完成: ${testResult.filePath}`);
-            testResultsFilePath = path.join(this.config.workDir, 'test-results.json');
+            testResultsFilePath = expectedTestResultsPath;
           }
         } catch (error: any) {
           if (this.isUsageLimitError(error)) {
@@ -172,32 +183,66 @@ export class TestAutomationOrchestrator {
         }
       } else {
         // 使用现有的测试结果文件
-        testResultsFilePath = path.join(this.config.workDir, 'test-results.json');
-        console.log(`🧪 跳过步骤4，使用现有测试结果文件: ${testResultsFilePath}`);
+        testResultsFilePath = expectedTestResultsPath;
+        if (testResultsExist) {
+          console.log(`🧪 跳过步骤4，使用现有测试结果文件: ${testResultsFilePath}`);
+        } else if (startStep > ExecutionStep.TEST_EXECUTION) {
+          console.log(`🧪 跳过步骤4，按起始步骤设置使用测试结果文件: ${testResultsFilePath}`);
+        }
       }
       
       // 步骤5: 校准 (仅在测试成功时执行)
-      if (testResultsFilePath && startStep <= 5) {
-        try {
-          // 检查测试是否成功
-          const testResultsContent = await fs.readFile(testResultsFilePath, 'utf-8');
-          const testResults = JSON.parse(testResultsContent);
-          
-          if (testResults.success) {
-            console.log('\n🔧 步骤5: 校准分析');
-            console.log('⏳ 正在基于成功的测试结果进行校准分析...');
-            const calibrationResult = await this.calibrator.execute(testResultsFilePath);
-            if (!calibrationResult.success) {
-              console.warn(`⚠️ 校准分析遇到问题: ${calibrationResult.error}`);
-            } else {
-              console.log(`✅ 校准分析完成: ${calibrationResult.filePath}`);
+      const calibrationReportPath = path.join(this.config.workDir, 'calibration-report.md');
+      let calibrationExists = false;
+      try {
+        await fs.access(calibrationReportPath);
+        calibrationExists = true;
+      } catch {
+        calibrationExists = false;
+      }
+
+      if (testResultsFilePath && startStep <= ExecutionStep.CALIBRATION) {
+        if (calibrationExists) {
+          console.log(`\n🔧 跳过步骤5，使用现有校准报告: ${calibrationReportPath}`);
+        } else {
+          try {
+            // 检查测试是否成功
+            const testResultsContent = await fs.readFile(testResultsFilePath, 'utf-8');
+            const testResults = JSON.parse(testResultsContent);
+            
+            // 检查测试是否成功 - 支持多种格式
+            let isTestSuccessful = false;
+            
+            if (typeof testResults.success === 'boolean') {
+              // TestRunner格式：直接有success字段
+              isTestSuccessful = testResults.success;
+            } else if (testResults.stats) {
+              // Playwright原生格式：检查stats字段
+              const stats = testResults.stats;
+              isTestSuccessful = stats.unexpected === 0 && stats.expected > 0;
+            } else if (testResults.suites) {
+              // Playwright原生格式：检查所有测试的状态
+              const allTests = this.extractAllTests(testResults.suites);
+              const failedTests = allTests.filter(test => test.status !== 'expected');
+              isTestSuccessful = allTests.length > 0 && failedTests.length === 0;
             }
-          } else {
-            console.log('\n⚠️ 步骤5: 跳过校准');
-            console.log('因为测试未成功执行，跳过校准步骤');
+            
+            if (isTestSuccessful) {
+              console.log('\n🔧 步骤5: 校准分析');
+              console.log('⏳ 正在基于成功的测试结果进行校准分析...');
+              const calibrationResult = await this.calibrator.execute(testResultsFilePath);
+              if (!calibrationResult.success) {
+                console.warn(`⚠️ 校准分析遇到问题: ${calibrationResult.error}`);
+              } else {
+                console.log(`✅ 校准分析完成: ${calibrationResult.filePath}`);
+              }
+            } else {
+              console.log('\n⚠️ 步骤5: 跳过校准');
+              console.log('因为测试未成功执行，跳过校准步骤');
+            }
+          } catch (error) {
+            console.warn(`⚠️ 无法读取测试结果进行校准: ${error}`);
           }
-        } catch (error) {
-          console.warn(`⚠️ 无法读取测试结果进行校准: ${error}`);
         }
       }
       
@@ -221,6 +266,29 @@ export class TestAutomationOrchestrator {
     }
   }
   
+  /**
+   * 从Playwright suites中提取所有测试用例
+   */
+  private extractAllTests(suites: any[]): any[] {
+    const tests: any[] = [];
+    
+    const extractFromSuite = (suite: any) => {
+      if (suite.specs) {
+        suite.specs.forEach((spec: any) => {
+          if (spec.tests) {
+            tests.push(...spec.tests);
+          }
+        });
+      }
+      if (suite.suites) {
+        suite.suites.forEach(extractFromSuite);
+      }
+    };
+    
+    suites.forEach(extractFromSuite);
+    return tests;
+  }
+
   /**
    * 检查错误是否为使用限制相关错误
    */

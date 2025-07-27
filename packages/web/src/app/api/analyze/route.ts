@@ -132,8 +132,19 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('API Error:', error);
+    
+    // 根据环境返回不同级别的错误信息
+    const errorMessage = error instanceof Error ? error.message : '未知服务器错误';
+    const responseMessage = process.env.NODE_ENV === 'development' 
+      ? errorMessage 
+      : '服务器内部错误，请稍后重试';
+    
     return NextResponse.json(
-      { error: '服务器内部错误，请稍后重试' },
+      { 
+        error: responseMessage,
+        code: 'INTERNAL_SERVER_ERROR',
+        timestamp: new Date().toISOString()
+      },
       { status: 500 }
     );
   }

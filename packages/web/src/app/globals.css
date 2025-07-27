@@ -101,3 +101,30 @@
     }
   }
 }
+
+/* 修复CSS lint警告 */
+@layer utilities {
+  /* 修复appearance属性缺失标准属性的问题 */
+  input[type="search"], 
+  input[type="text"], 
+  input[type="email"], 
+  input[type="password"],
+  select,
+  textarea {
+    -webkit-appearance: none;
+    appearance: none; /* 添加标准属性 */
+  }
+
+  /* 修复vertical-align在block元素上的问题 */
+  .fix-vertical-align {
+    display: inline-block;
+    vertical-align: middle;
+  }
+  
+  /* 或者移除vertical-align，使用flexbox替代 */
+  .flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
